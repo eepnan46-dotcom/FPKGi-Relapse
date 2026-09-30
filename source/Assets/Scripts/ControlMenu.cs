@@ -362,7 +362,7 @@ public class ControlMenu : MonoBehaviour
                     if (!URL.IsValidURI(cover)) cover = iconPath;
 
                     Print(LogType.Log, $"Installing package {pkgFile}");
-                    UOB.InstallLocalPackage(pkgFile, currentContentItem.Value.name, cover, deleteAfter);
+                    InstallLocalWithActiveBackend(pkgFile, currentContentItem.Value.name, cover, deleteAfter);
                     // UOB.InstallLocalPackage(pkgFile, currentContentItem.Value.name, deleteAfter);
 
                     if (GoldHEN == true && deleteAfter)
@@ -390,7 +390,7 @@ public class ControlMenu : MonoBehaviour
 
                 Print(LogType.Log, $"Installing package [{downloadedFile + ".pkg"}] " +
                     $"from {downloadPath} & {(deleteAfter ? "deleting file after." : "keeping file.")}");
-                UOB.InstallLocalPackage(downloadedFile + ".pkg", currentContentItem.Value.name, cover, deleteAfter);
+                InstallLocalWithActiveBackend(downloadedFile + ".pkg", currentContentItem.Value.name, cover, deleteAfter);
                 // UOB.InstallLocalPackage(downloadedFile + ".pkg", currentContentItem.Value.name, deleteAfter);
             }
         }
