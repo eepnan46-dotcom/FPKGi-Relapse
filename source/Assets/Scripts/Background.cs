@@ -349,12 +349,17 @@ public class Background : MonoBehaviour
 
         Text versionText = UI.FindInactiveObjectsByPath("Canvas/Main/Version")?.GetComponent<Text>();
 
-        UI.ChangeText(versionText, $"v{UI.FormatVersion(version)}");
+        UI.ChangeText(versionText, $"v{UI.FormatVersion(version)}-{forkTag}");
 
         UI.ShowUIState(null);
 
         if (isConsole)
-            GoldHEN = !(etaHEN = UOB.IsPlayStation5());
+        {
+            PlayStation5 = UOB.IsPlayStation5();
+            GoldHEN = !PlayStation5;
+            etaHEN = false;
+            Relapse = false;
+        }
         else
         {
             directoryPath = Path.GetFullPath(Application.dataPath + @"\..\DATA\");
@@ -426,6 +431,13 @@ public class Background : MonoBehaviour
 
     public static async Task<bool> CheckForAppUpdates()
     {
+        if (!string.IsNullOrEmpty(forkTag))
+        {
+            updateChecked = true;
+            updateAvailable = false;
+            return true;
+        }
+
         string latestHash = string.Empty, currentHash = string.Empty, fileVersion = string.Empty;
 
         if (loadedOffline == false)
@@ -565,27 +577,82 @@ public class Background : MonoBehaviour
         if (isConsole)
         {
             float jbStart = Time.time;
-            UOB.BreakFromSandbox();
+            bool usingRelapseBackend = false;
 
-            while (!IO.DoesPathExist("/system/common/lib"))
-                yield return null;
+            if (PlayStation5)
+            {
+                string pkgManagerVersion;
+                if (RelapseBackend.Probe(out pkgManagerVersion))
+                {
+                    Relapse = true;
+                    etaHEN = false;
+                    RelapsePkgManagerVersion = pkgManagerVersion;
+                    usingRelapseBackend = true;
 
-            if (IO.DoesPathExist("/data/UnityOrbisBridge.log"))
-                File.Delete("/data/UnityOrbisBridge.log");
+                    Print(LogType.Assert,
+                        $"Relapse backend detected: PKG Manager {pkgManagerVersion} on 127.0.0.1:8844");
+                    Print(LogType.Assert,
+                        "Skipping etaHEN whitelist jailbreak; package installs will be handed to PKG Manager.");
+                }
+            }
 
-            string consoleType = etaHEN == true ? "5" : "4";
-            string fwVersion = Marshal.PtrToStringAnsi(UOB.GetFWVersion()).Replace(" ", "");
-            Print(LogType.Assert, $"Currently running on PlayStation {consoleType} ({fwVersion})");
-            Print(LogType.Assert, $"App has broken from the sandbox in {Time.time - jbStart}s!");
+            if (!usingRelapseBackend)
+            {
+                if (PlayStation5)
+                    Print(LogType.Warning,
+                        "PKG Manager was not detected. Falling back to the upstream PS5/etaHEN path.");
 
-            int SceAppInstUtil = UOB.SafeLoadModule("/system/common/lib/libSceAppInstUtil.sprx");
-            int SceBgft = UOB.SafeLoadModule("/system/common/lib/libSceBgft.sprx");
-            while (SceAppInstUtil <= 0 || SceBgft <= 0)
-                yield return null;
+                UOB.BreakFromSandbox();
 
-            Print(LogType.Assert, "Successfully loaded necessary SCE libraries...");
+                float sandboxWaitStart = Time.time;
+                while (!IO.DoesPathExist("/system/common/lib") &&
+                       Time.time - sandboxWaitStart < 35f)
+                    yield return null;
 
-            UOB.InitializeNativeDialogs();
+                if (IO.DoesPathExist("/system/common/lib"))
+                {
+                    if (IO.DoesPathExist("/data/UnityOrbisBridge.log"))
+                        File.Delete("/data/UnityOrbisBridge.log");
+
+                    etaHEN = PlayStation5;
+                    Relapse = false;
+
+                    string consoleType = PlayStation5 ? "5" : "4";
+                    string fwVersion = Marshal.PtrToStringAnsi(UOB.GetFWVersion()).Replace(" ", "");
+                    Print(LogType.Assert, $"Currently running on PlayStation {consoleType} ({fwVersion})");
+                    Print(LogType.Assert, $"App has broken from the sandbox in {Time.time - jbStart}s!");
+
+                    int SceAppInstUtil = UOB.SafeLoadModule("/system/common/lib/libSceAppInstUtil.sprx");
+                    int SceBgft = UOB.SafeLoadModule("/system/common/lib/libSceBgft.sprx");
+
+                    float moduleWaitStart = Time.time;
+                    while ((SceAppInstUtil <= 0 || SceBgft <= 0) &&
+                           Time.time - moduleWaitStart < 10f)
+                        yield return null;
+
+                    if (SceAppInstUtil > 0 && SceBgft > 0)
+                        Print(LogType.Assert, "Successfully loaded necessary SCE libraries...");
+                    else
+                        Print(LogType.Error,
+                            "Timed out loading SCE installer libraries. Downloads may work, installs may not.");
+                }
+                else
+                {
+                    etaHEN = false;
+                    Relapse = false;
+                    Print(LogType.Error,
+                        "Could not obtain the upstream sandbox breakout. Start PKG Manager before FPKGi-Relapse or use a supported etaHEN setup.");
+                }
+            }
+
+            try
+            {
+                UOB.InitializeNativeDialogs();
+            }
+            catch (Exception ex)
+            {
+                Print(LogType.Warning, $"Native dialog initialization failed: {ex.Message}");
+            }
 
             //   long app_size = GetRemoteFileSize("https://github.com/ItsJokerZz/FPKGi/releases/download/v1.01.1/FPKGi_v1.01.1-release.pkg");
             //   Print(LogType.Log, $"TEST APP SIZE: {app_size}");

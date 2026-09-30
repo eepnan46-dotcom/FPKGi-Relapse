@@ -7,8 +7,13 @@ public class Variables
     public static float version = 1.100f;
     public static int buildNumber = 0437;
 
+    public const string forkTag = "relapse-0.1-dev";
+
     public static bool? GoldHEN = null;
     public static bool? etaHEN = null;
+    public static bool? Relapse = null;
+    public static bool PlayStation5 = false;
+    public static string RelapsePkgManagerVersion = null;
 
     public static bool? loadedOffline = null;
     public static bool? updateAvailable = null;
@@ -102,7 +107,7 @@ public class Variables
         deleteOnCancel = false,
         populateViaWeb = false,
         backgroundMusic = true,
-        enableUpdates = true;
+        enableUpdates = false;
 
     public static Dictionary<string, string> ContentURLs = new Dictionary<string, string>
     {

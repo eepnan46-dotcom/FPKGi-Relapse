@@ -60,6 +60,52 @@ public class ControlMenu : MonoBehaviour
     public int queueHighlightIndex = 0;
     #endregion
 
+    #region Install Backend
+    private static bool InstallLocalWithActiveBackend(
+        string packagePath, string displayName, string cover, bool deleteAfterRequested)
+    {
+        if (Relapse == true)
+        {
+            string response;
+            bool accepted = RelapseBackend.Install(packagePath, out response);
+
+            Print(accepted ? LogType.Assert : LogType.Error,
+                accepted
+                    ? $"PKG Manager accepted local install: {displayName}"
+                    : $"PKG Manager rejected local install: {displayName} ({response})");
+
+            if (accepted && deleteAfterRequested)
+                Print(LogType.Warning,
+                    "Delete After Install is deferred on the Relapse backend in v0.1; the source PKG will be kept.");
+
+            return accepted;
+        }
+
+        UOB.InstallLocalPackage(packagePath, displayName, cover, deleteAfterRequested);
+        return true;
+    }
+
+    private static bool InstallWebWithActiveBackend(
+        string url, string displayName, string titleId, string cover)
+    {
+        if (Relapse == true)
+        {
+            string response;
+            bool accepted = RelapseBackend.Install(url, out response);
+
+            Print(accepted ? LogType.Assert : LogType.Error,
+                accepted
+                    ? $"PKG Manager accepted web install: {displayName}"
+                    : $"PKG Manager rejected web install: {displayName} ({response})");
+
+            return accepted;
+        }
+
+        UOB.InstallWebPackage(url, displayName, titleId, cover);
+        return true;
+    }
+    #endregion
+
     #region Coroutine Handling
     private IEnumerator InitializeCoroutine()
     {
@@ -554,7 +600,7 @@ public class ControlMenu : MonoBehaviour
                     if (!URL.IsValidURI(cover)) cover = iconPath;
 
                     Print(LogType.Log, $"Installing package [{packagePath}] from {downloadPath} & {(deleteAfter ? "deleting file after." : "keeping file.")}");
-                    UOB.InstallLocalPackage(packagePath, gameContent.name, cover, deleteAfter);
+                    InstallLocalWithActiveBackend(packagePath, gameContent.name, cover, deleteAfter);
                     // UOB.InstallLocalPackage(packagePath, gameContent.name, deleteAfter);
                 }
 
@@ -616,7 +662,7 @@ public class ControlMenu : MonoBehaviour
                             if (!URL.IsValidURI(cover)) cover = iconPath;
 
                             Print(LogType.Log, $"Installing package [{packagePath}] from {downloadPath} & {(deleteAfter ? "deleting file after." : "keeping file.")}");
-                            UOB.InstallLocalPackage(packagePath, gameContent.name, cover, deleteAfter);
+                            InstallLocalWithActiveBackend(packagePath, gameContent.name, cover, deleteAfter);
                             // UOB.InstallLocalPackage(packagePath, gameContent.name, deleteAfter);
                         }
 
@@ -641,7 +687,7 @@ public class ControlMenu : MonoBehaviour
                     {
                         var cover = URL.ProperFormatUrl(gameContent.cover_url);
                         if (!URL.IsValidURI(cover)) cover = iconPath;
-                        UOB.InstallWebPackage(downloadlink, sanitizedFilename, gameContent.title_id, cover);
+                        InstallWebWithActiveBackend(downloadlink, sanitizedFilename, gameContent.title_id, cover);
                         // UOB.InstallWebPackage(downloadlink, sanitizedFilename, gameContent.name);
 
                         // Remove from queue after calling install web package
@@ -1187,7 +1233,7 @@ public class ControlMenu : MonoBehaviour
                                 if (!URL.IsValidURI(cover)) cover = iconPath;
 
                                 Print(LogType.Log, $"Installing package [{packagePath}] from {downloadPath} & {(deleteAfter ? "deleting file after." : "keeping file.")}");
-                                UOB.InstallLocalPackage(packagePath, currentContentItem.Value.name, cover, deleteAfter);
+                                InstallLocalWithActiveBackend(packagePath, currentContentItem.Value.name, cover, deleteAfter);
                                 // UOB.InstallLocalPackage(packagePath, currentContentItem.Value.name, deleteAfter);
                             }
                             else
@@ -1214,7 +1260,7 @@ public class ControlMenu : MonoBehaviour
                                 var cover = URL.ProperFormatUrl(currentContentItem.Value.cover_url);
                                 if (!URL.IsValidURI(cover)) cover = iconPath;
 
-                                UOB.InstallWebPackage(downloadlink, sanitizedFilename, currentContentItem.Value.title_id, cover);
+                                InstallWebWithActiveBackend(downloadlink, sanitizedFilename, currentContentItem.Value.title_id, cover);
                                 // UOB.InstallWebPackage(downloadlink, sanitizedFilename, currentContentItem.Value.name);
                             }
                         }

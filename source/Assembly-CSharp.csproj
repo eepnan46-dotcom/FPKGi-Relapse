@@ -56,6 +56,7 @@
      <Compile Include="Assets\Scripts\ControlMenu.cs" />
      <Compile Include="Assets\Scripts\FileHandlers.cs" />
      <Compile Include="Assets\Scripts\Globals\JsonData.cs" />
+     <Compile Include="Assets\Scripts\Globals\RelapseBackend.cs" />
      <Compile Include="Assets\Scripts\Globals\UOBWrapper.cs" />
      <Compile Include="Assets\Scripts\Globals\Utilities.cs" />
      <Compile Include="Assets\Scripts\Globals\Variables.cs" />
